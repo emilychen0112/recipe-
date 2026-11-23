@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>今晚煮什麼</title>
+<style>
+:root{--paper:#fff7ef;--ink:#3b2a3f;--soft:#7a6680;--card:#fff;--line:#f1dccb;--pink:#e5577e;--mint:#8fdcc2;--sun:#ffd76a;color-scheme:light dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#241a28;--ink:#f6e9ee;--soft:#b9a6c0;--card:#33263a;--line:#4a3a52;--pink:#ff8fab;--mint:#2f9e7e;--sun:#c9a43a}}
+:root[data-theme="dark"]{--paper:#241a28;--ink:#f6e9ee;--soft:#b9a6c0;--card:#33263a;--line:#4a3a52;--pink:#ff8fab;--mint:#2f9e7e;--sun:#c9a43a}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 "Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--paper);z-index:10}
+.wrap{max-width:720px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right,0px)) 80px max(16px,env(safe-area-inset-left,0px))}
+h1{font-size:1.9rem;margin:.4rem 0 0;letter-spacing:.04em}h1 span{color:var(--pink)}
+.sub{color:var(--soft);margin:.2rem 0 1rem}
+button,input,select,textarea{font:inherit;color:inherit}
+.btn{border:3px solid var(--ink);background:var(--card);border-radius:999px;padding:.45em 1.1em;font-weight:700;cursor:pointer;box-shadow:3px 3px 0 var(--mint)}
+.btn.pri{background:var(--pink);color:#fff;box-shadow:3px 3px 0 var(--ink)}
+.btn.sm{padding:.2em .8em;font-size:.85rem;box-shadow:none}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+input,select,textarea{width:100%;border:2px solid var(--ink);border-radius:14px;background:var(--card);padding:.5em .8em}
+textarea{min-height:90px;resize:vertical}
+.cats{display:flex;gap:.4rem;overflow-x:auto;padding:.7rem 0}
+.chip{flex:none;border:2px solid var(--ink);background:var(--card);border-radius:999px;padding:.1em .9em;cursor:pointer;font-weight:700}
+.chip.on{background:var(--sun);color:#3b2a3f}
+.pick{border:3px solid var(--ink);border-radius:22px;padding:1rem 1.1rem;background:var(--sun);color:#3b2a3f;box-shadow:6px 6px 0 var(--pink);margin:.6rem 0 1rem}
+.pick h2{margin:.1rem 0 .3rem;font-size:1.4rem}
+.card{border:3px solid var(--ink);border-radius:22px;background:var(--card);padding:.9rem 1.1rem;margin:.8rem 0;box-shadow:5px 5px 0 var(--mint)}
+.card h3{margin:0;font-size:1.15rem}
+.meta{color:var(--soft);font-size:.88rem}
+.tag{display:inline-block;background:var(--sun);color:#3b2a3f;border-radius:999px;padding:0 .6em;font-size:.8rem;font-weight:700;margin-right:.4rem}
+.det{margin-top:.6rem;border-top:2px dashed var(--line);padding-top:.6rem}
+.det h4{margin:.5rem 0 .2rem;color:var(--pink)}
+.det ul,.det ol{margin:0;padding-left:1.3rem}
+.det p{margin:.2rem 0;white-space:pre-wrap}
+.empty{text-align:center;color:var(--soft);padding:2rem 0}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:20;overflow:auto}
+.mask.on{display:block}
+.sheet{max-width:560px;margin:5vh auto;background:var(--paper);border:3px solid var(--ink);border-radius:22px;padding:1rem 1.1rem;display:grid;gap:.6rem}
+.sheet label{font-weight:700;font-size:.9rem}
+#status{color:var(--soft);font-size:.8rem;text-align:center;margin-top:1.2rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>今晚<span>煮</span>什麼</h1>
+  <p class="sub">我家的食譜小本本：記下來、搜得到、想不出來就抽一個。</p>
+
+  <div class="row">
+    <button class="btn pri" id="draw">🎲 今晚吃什麼</button>
+    <button class="btn" id="combo">🍽️ 組一桌</button>
+    <button class="btn" id="add">＋ 新增食譜</button>
+  </div>
+  <div class="row" style="margin-top:.6rem"><select id="nn" style="width:auto"><option value="3">3 道</option><option value="4" selected>4 道</option></select><span class="meta">每人蛋白質目標</span><input id="tgt" type="number" min="0" inputmode="numeric" placeholder="選填，如 25" style="width:120px"><span class="meta">g</span></div>
+  <div id="pick"></div>
+
+  <div style="margin-top:.9rem"><input id="q" type="search" placeholder="搜尋名稱或食材，例如 雞腿、豆腐" aria-label="搜尋"></div>
+  <div class="cats" id="cats"></div>
+  <div id="list"></div>
+  <p id="status"></p>
+</div>
+
+<div class="mask" id="mask">
+  <div class="sheet">
+    <h2 id="ftitle" style="margin:0">新增食譜</h2>
+    <div id="ai" style="display:none;border:2px dashed var(--line);border-radius:14px;padding:.6rem">
+      <label for="f-paste">懶得打字？貼上或口述整段食譜</label>
+      <textarea id="f-paste" placeholder="直接貼上網路食譜或自己的筆記，也可以按麥克風用講的，再按「幫我整理」"></textarea>
+      <div class="row" style="margin-top:.4rem"><button class="btn sm" id="f-mic" style="display:none">🎤 口述</button><button class="btn sm" id="f-parse">✨ 幫我整理</button><span id="f-msg" class="meta"></span></div>
+    </div>
+    <div><label for="f-name">名稱</label><input id="f-name" placeholder="例如 蒜香雞腿排"></div>
+    <div class="row">
+      <div style="flex:1;min-width:140px"><label for="f-cat">分類</label>
+        <select id="f-cat"><option>蔬菜</option><option>豆腐豆製品</option><option>麵飯</option><option>湯品</option><option>點心配菜</option><option>其他</option></select></div>
+      <div style="flex:1;min-width:140px"><label for="f-min">時間（分鐘）</label><input id="f-min" type="number" min="0" inputmode="numeric" placeholder="30"></div>
+    </div>
+    <div><label for="f-ing">食材（一行一項）</label><textarea id="f-ing"></textarea></div>
+    <div><label for="f-steps">作法</label><textarea id="f-steps"></textarea></div>
+    <div><label for="f-note">備註</label><input id="f-note" placeholder="小孩愛吃、少辣……"></div>
+    <div class="row" style="align-items:end"><div style="flex:1;min-width:160px"><label for="f-pro">蛋白質（每人份約幾公克）</label><input id="f-pro" type="number" min="0" inputmode="numeric" placeholder="例如 12"></div><button class="btn sm" id="f-est" style="display:none">✨ 幫我估</button></div>
+    <div class="row" style="justify-content:space-between">
+      <button class="btn sm" id="f-del" style="display:none">刪除</button>
+      <span style="flex:1"></span>
+      <button class="btn sm" id="f-cancel">取消</button>
+      <button class="btn pri sm" id="f-save">儲存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATS=["全部","蔬菜","豆腐豆製品","麵飯","湯品","點心配菜","其他"];
+let recipes=[],cat="全部",q="",open=null,editing=null,col=null;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const lines=s=>String(s||"").split("\n").map(x=>x.trim()).filter(Boolean);
+
+/* ---- storage: shared db when available, localStorage fallback ---- */
+function localLoad(){try{return JSON.parse(localStorage.getItem("recipes")||"[]")}catch(e){return []}}
+function localSave(){try{localStorage.setItem("recipes",JSON.stringify(recipes))}catch(e){}}
+async function save(r){
+  if(col){try{await col.doc(r.id).set(r);return}catch(e){}}
+  const i=recipes.findIndex(x=>x.id===r.id);i<0?recipes.push(r):recipes[i]=r;localSave();render();
+}
+async function del(id){
+  if(col){try{await col.doc(id).delete();return}catch(e){}}
+  recipes=recipes.filter(x=>x.id!==id);localSave();render();
+}
+async function init(){
+  recipes=localLoad();render();
+  let done=false;
+  const fallback=()=>{if(!done){done=true;$("status").textContent="目前存在這個瀏覽器裡（換裝置不會同步）";}};
+  const timer=setTimeout(fallback,10000);
+  try{
+    const db=window.claude&&await claude.use("db");
+    if(!db){clearTimeout(timer);fallback();return}
+    col=db.collection("recipes");
+    col.onSnapshot(s=>{
+      clearTimeout(timer);done=true;
+      recipes=s.docs.map(d=>({...d.data(),id:d.id}));
+      $("status").textContent="已同步，共 "+recipes.length+" 道";
+      render();
+    },()=>{col=null;fallback()});
+  }catch(e){clearTimeout(timer);fallback()}
+}
+
+/* ---- render ---- */
+function filtered(){
+  const k=q.trim().toLowerCase();
+  return recipes.filter(r=>(cat==="全部"||r.cat===cat)&&(!k||(r.name+" "+(r.ing||"")+" "+(r.note||"")).toLowerCase().includes(k)));
+}
+function render(){
+  $("cats").innerHTML=CATS.map(c=>`<button class="chip${c===cat?" on":""}" data-c="${c}">${c}</button>`).join("");
+  const list=filtered().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  $("list").innerHTML=list.length?list.map(card).join(""):
+    `<div class="empty">${recipes.length?"找不到符合的食譜":"還沒有食譜，按「＋ 新增食譜」開始記第一道吧"}</div>`;
+}
+function card(r){
+  const o=open===r.id;
+  return `<div class="card"><div class="row" style="justify-content:space-between;flex-wrap:nowrap">
+    <div data-o="${r.id}" style="cursor:pointer;flex:1"><h3>${esc(r.name)}</h3>
+    <div class="meta"><span class="tag">${esc(r.cat)}</span>${r.min?esc(r.min)+" 分鐘":""}${r.pro?"・蛋白質約 "+esc(r.pro)+"g":""}</div></div>
+    <button class="btn sm" data-e="${r.id}">編輯</button></div>
+    ${o?`<div class="det"><h4>食材</h4><ul>${lines(r.ing).map(x=>`<li>${esc(x)}</li>`).join("")||"<li class=meta>未填</li>"}</ul>
+    <h4>作法</h4><ol>${lines(r.steps).map(x=>`<li>${esc(x)}</li>`).join("")||"<li class=meta>未填</li>"}</ol>
+    ${r.note?`<h4>備註</h4><p>${esc(r.note)}</p>`:""}</div>`:""}</div>`;
+}
+
+/* ---- dinner picker ---- */
+let lastPick=null;
+function draw(){
+  const pool=filtered();
+  if(!pool.length){$("pick").innerHTML=`<div class="pick"><h2>還沒有可抽的食譜</h2><div>先新增幾道，或調整下面的篩選。</div></div>`;return}
+  let r;do{r=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&r.id===lastPick);
+  lastPick=r.id;
+  $("pick").innerHTML=`<div class="pick"><div class="meta" style="color:inherit;opacity:.75">今晚就煮這個</div><h2>${esc(r.name)}</h2>
+  <div>${esc(r.cat)}${r.min?"・"+esc(r.min)+" 分鐘":""}</div>
+  <div class="row" style="margin-top:.5rem"><button class="btn sm" data-o="${r.id}">看作法</button><button class="btn sm" id="again">換一個</button></div></div>`;
+}
+
+/* ---- form ---- */
+function openForm(r){
+  editing=r?r.id:null;
+  $("ftitle").textContent=r?"編輯食譜":"新增食譜";
+  $("f-name").value=r?.name||"";$("f-cat").value=r?.cat||"蔬菜";$("f-min").value=r?.min||"";
+  $("f-ing").value=r?.ing||"";$("f-steps").value=r?.steps||"";$("f-note").value=r?.note||"";$("f-pro").value=r?.pro||"";
+  $("f-paste").value="";$("f-msg").textContent="";
+  $("f-del").style.display=r?"":"none";$("mask").classList.add("on");
+}
+function closeForm(){$("mask").classList.remove("on")}
+
+document.addEventListener("click",async e=>{
+  const t=e.target.closest("button,[data-o]");if(!t)return;
+  if(t.dataset.c){cat=t.dataset.c;render();return}
+  if(t.dataset.o){open=open===t.dataset.o?null:t.dataset.o;render();return}
+  if(t.dataset.e){openForm(recipes.find(r=>r.id===t.dataset.e));return}
+  if(t.id==="draw"||t.id==="again"){draw();return}
+  if(t.id==="add"){openForm();return}
+  if(t.id==="f-cancel"){closeForm();return}
+  if(t.id==="f-save"){
+    const name=$("f-name").value.trim();if(!name){$("f-name").focus();return}
+    const old=recipes.find(r=>r.id===editing);
+    await save({id:editing||"r"+Date.now().toString(36),name,cat:$("f-cat").value,min:$("f-min").value,ing:$("f-ing").value,steps:$("f-steps").value,note:$("f-note").value.trim(),pro:$("f-pro").value,ts:old?.ts||Date.now()});
+    closeForm();return;
+  }
+  if(t.id==="f-del"&&editing&&confirm("確定刪除這道食譜？")){await del(editing);closeForm()}
+});
+$("q").addEventListener("input",e=>{q=e.target.value;render()});
+
+/* ---- easy entry: paste or speak, Claude fills the fields ---- */
+let sample=null,dict=null,listening=false;
+(async()=>{
+  try{
+    sample=window.claude&&await claude.use("sample");
+    if(sample){$("ai").style.display="block";$("f-est").style.display="";}
+    dict=window.claude&&await claude.use("dictation");
+    if(dict){
+      $("f-mic").style.display="";
+      dict.onFinal(({text})=>{$("f-paste").value+=text});
+      dict.onState(({state})=>{listening=state==="listening";$("f-mic").textContent=listening?"⏹ 停止":"🎤 口述"});
+    }
+  }catch(e){}
+})();
+$("f-mic").addEventListener("click",()=>{
+  if(!dict)return;
+  if(listening){dict.stop().catch(()=>{});return}
+  dict.start().catch(()=>{});
+});
+$("f-parse").addEventListener("click",async()=>{
+  const txt=$("f-paste").value.trim();
+  if(!txt||!sample)return;
+  $("f-msg").textContent="整理中…";
+  try{
+    const r=await sample.json("你是食譜整理助手。把下面的文字整理成 JSON，只回傳 JSON，不要其他文字。格式：{\"name\":\"料理名稱\",\"cat\":\"從 蔬菜、豆腐豆製品、麵飯、湯品、點心配菜、其他 擇一\",\"min\":烹調分鐘數（數字，不確定就填空字串）,\"ing\":\"食材，一行一項，含份量\",\"steps\":\"步驟，一行一步，不要編號\",\"note\":\"備註，沒有就填空字串\"}。使用繁體中文，不要自行增減食材或步驟。\n\n食譜文字：\n"+txt);
+    if(r.name)$("f-name").value=r.name;
+    if(CATS.includes(r.cat)&&r.cat!=="全部")$("f-cat").value=r.cat;
+    if(r.min!==undefined)$("f-min").value=r.min;
+    if(r.ing)$("f-ing").value=r.ing;
+    if(r.steps)$("f-steps").value=r.steps;
+    if(r.note)$("f-note").value=r.note;
+    if(r.ing&&!$("f-pro").value)await est();
+    $("f-msg").textContent="整理好了，確認一下再儲存";
+  }catch(e){
+    $("f-msg").textContent=e&&e.code==="not_granted"?"需要先允許才能自動整理":"整理失敗，可以直接手動填";
+  }
+});
+async function est(){
+  const ing=$("f-ing").value.trim();
+  if(!ing||!sample)return;
+  $("f-msg").textContent="估算蛋白質中…";
+  try{
+    const r=await sample.json(`估算這道素食料理每人份的蛋白質（公克）。只回傳 JSON：{"pro":數字}。若食材沒寫份數，以 3 人份推算。這只是粗估。
+
+料理：${$("f-name").value}
+食材：
+${ing}`);
+    const v=Math.round(Number(r.pro));
+    if(v>=0&&v<200)$("f-pro").value=v;
+    $("f-msg").textContent="已粗估蛋白質，可自行修改";
+  }catch(e){$("f-msg").textContent="估算失敗，可以自己填"}
+}
+$("f-est").addEventListener("click",est);
+
+/* ---- 組一桌：3–4 道不重複，盡量不同分類，可對準蛋白質目標 ---- */
+function oneCombo(n){
+  const by={};
+  recipes.forEach(r=>(by[r.cat]=by[r.cat]||[]).push(r));
+  const cats=Object.keys(by).sort(()=>Math.random()-.5);
+  const out=[];let i=0;
+  while(out.length<n&&cats.length){
+    const k=i%cats.length,arr=by[cats[k]];
+    if(!arr.length){cats.splice(k,1);continue}
+    out.push(arr.splice(Math.floor(Math.random()*arr.length),1)[0]);i++;
+  }
+  return out;
+}
+function makeCombo(){
+  const n=Number($("nn").value)||4,t=parseFloat($("tgt").value);
+  if(recipes.length<n){$("pick").innerHTML=`<div class="pick"><h2>食譜還不夠組一桌</h2><div>至少要有 ${n} 道，目前 ${recipes.length} 道。</div></div>`;return}
+  const sum=c=>c.reduce((a,r)=>a+(parseFloat(r.pro)||0),0);
+  let best=oneCombo(n);
+  if(t>0)for(let i=0;i<300;i++){const c=oneCombo(n);if(Math.abs(sum(c)-t)<Math.abs(sum(best)-t))best=c}
+  const known=best.filter(r=>r.pro).length;
+  $("pick").innerHTML=`<div class="pick"><div style="opacity:.75">今晚這一桌（${n} 道，不重複）</div>
+  ${best.map(r=>`<div style="margin:.35rem 0"><b data-o="${r.id}" style="cursor:pointer">${esc(r.name)}</b> <span style="opacity:.75;font-size:.88rem">${esc(r.cat)}${r.pro?"・約 "+esc(r.pro)+"g":"・未估算"}</span></div>`).join("")}
+  <div style="border-top:2px dashed currentColor;margin-top:.5rem;padding-top:.4rem"><b>每人蛋白質合計約 ${Math.round(sum(best))} g</b>${known<best.length?`（${best.length-known} 道未估算，沒算進去）`:""}</div>
+  <div style="opacity:.75;font-size:.85rem">粗估值，僅供參考</div>
+  <div class="row" style="margin-top:.5rem"><button class="btn sm" id="combo2">再組一桌</button></div></div>`;
+}
+document.addEventListener("click",e=>{if(e.target.closest("#combo,#combo2"))makeCombo()});
+
+init();
+</script>
+</body>
+</html>
